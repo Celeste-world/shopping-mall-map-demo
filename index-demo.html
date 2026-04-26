@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>館内ナビ（検索機能追加版）</title>
+
+<style>
+body{
+  font-family:sans-serif;
+  margin:0;
+  background:#f4f7fb;
+  color:#222;
+  -webkit-text-size-adjust:100%;
+}
+
+.app-header{
+  display:none;
+}
+
+.controls{
+  padding:12px;
+  background:#fff;
+  border-bottom:1px solid #ddd;
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+  position:sticky;
+  top:0;
+  z-index:20;
+}
+
+.search-panel{
+  max-width:900px;
+  margin:14px auto 0;
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:12px;
+  box-sizing:border-box;
+}
+
+.search-row{
+  display:grid;
+  grid-template-columns:1fr 180px;
+  gap:8px;
+}
+
+.search-results{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:8px;
+  margin-top:10px;
+}
+
+.result-card{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  padding:9px 10px;
+  background:#fff;
+  cursor:pointer;
+  transition:background 0.15s ease,border 0.15s ease,transform 0.15s ease;
+}
+
+.result-card:hover{
+  background:#eff6ff;
+  border-color:#2563eb;
+  transform:translateY(-1px);
+}
+
+.result-title{
+  font-weight:700;
+  font-size:14px;
+  margin-bottom:3px;
+}
+
+.result-meta{
+  font-size:12px;
+  color:#555;
+  line-height:1.5;
+}
+
+select,button,input{
+  padding:8px 10px;
+  border:1px solid #ccc;
+  border-radius:8px;
+  background:#fff;
+  font-size:14px;
+  box-sizing:border-box;
+  min-height:40px;
+}
+
+button{ cursor:pointer; }
+
+button.active-mode{
+  background:#2457c5;
+  color:#fff;
+  border-color:#2457c5;
+}
+
+button.entrance{
+  border:1px solid #2563eb;
+  color:#2563eb;
+}
+
+button.entrance.active-entrance{
+  background:#2563eb;
+  color:#fff;
+}
+
+.legend{
+  font-size:13px;
+  color:#666;
+  margin-left:8px;
+}
+
+.map-toolbar{
+  max-width:900px;
+  margin:12px auto 0;
+  display:none;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+.map-toolbar.map-toolbar-expanded{
+  position:fixed;
+  top:calc(12px + env(safe-area-inset-top));
+  right:12px;
+  z-index:240;
+  max-width:none;
+  margin:0;
+}
+
+.map-toggle-btn{
+  border:1px solid #2563eb;
+  color:#2563eb;
+  background:#fff;
+  font-weight:700;
+}
+
+.map-close-btn{
+  display:none;
+  position:fixed;
+  top:calc(12px + env(safe-area-inset-top));
+  right:12px;
+  z-index:220;
+  background:#fff;
+  color:#111827;
+  border:1px solid #e5e7eb;
+  box-shadow:0 6px 18px rgba(0,0,0,0.25);
+  font-weight:700;
+}
+
+.map-wrap{
+  position:relative;
+  max-width:900px;
+  margin:12px auto 20px;
+  background:#fff;
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+  overflow:hidden;
+}
+
+.map-wrap.map-expanded{
+  position:fixed;
+  left:0;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  width:100vw;
+  max-width:none;
+  height:auto;
+  margin:0;
+  z-index:100;
+  border-radius:0;
+  background:#111827;
+  overflow:hidden;
+}
+
+.map-wrap.map-expanded img{
+  width:100%;
+  height:auto;
+  object-fit:initial;
+  display:block;
+}
+
+.map-wrap.map-expanded svg{
+  width:100%;
+  height:100%;
+  z-index:120;
+}
+
+.map-wrap.map-expanded .route-main{
+  stroke-width:2.2;
+  opacity:1;
+}
+
+.map-wrap.map-expanded .special-marker,
+.map-wrap.map-expanded .pin,
+.map-wrap.map-expanded .route-label,
+.map-wrap.map-expanded .entrance-icon,
+.map-wrap.map-expanded .entrance-label{
+  z-index:130;
+}
+
+.map-wrap.map-expanded .map-close-btn{
+  display:block;
+}
+
+.map-wrap.map-expanded .node{
+  display:none;
+}
+
+.map-wrap img{
+  width:100%;
+  display:block;
+}
+
+.pin{
+  position:absolute;
+  width:16px;
+  height:16px;
+  background:rgba(255,0,0,0.75);
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  z-index:3;
+}
+
+.pin::after{
+  content:"";
+  position:absolute;
+  inset:-5px;
+  border-radius:50%;
+  background:rgba(220,38,38,0.14);
+  z-index:-1;
+}
+
+.pin.facility{ background:rgba(37,99,235,0.85); }
+.pin.facility::after{ background:rgba(37,99,235,0.14); }
+.pin.entrance{ background:rgba(15,118,110,0.9); }
+.pin.entrance::after{ background:rgba(15,118,110,0.14); }
+.pin.es{ background:rgba(147,51,234,0.85); }
+.pin.es::after{ background:rgba(147,51,234,0.14); }
+
+.node{
+  position:absolute;
+  width:6px;
+  height:6px;
+  background:#666;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  z-index:1;
+  opacity:0.35;
+}
+
+.route-label{
+  position:absolute;
+  transform:translate(-50%,-130%);
+  padding:4px 8px;
+  font-size:13px;
+  border-radius:999px;
+  background:rgba(0,0,0,0.7);
+  color:#fff;
+  white-space:nowrap;
+  z-index:4;
+  pointer-events:none;
+}
+
+.special-marker{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  z-index:6;
+  width:24px;
+  height:24px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  font-size:14px;
+  font-weight:bold;
+  color:#fff;
+  box-shadow:0 4px 10px rgba(0,0,0,0.18);
+}
+
+.special-marker.start{ background:#16a34a; }
+.special-marker.goal{ background:#dc2626; }
+.special-marker.current{ background:#2563eb; }
+
+.entrance-icon{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  z-index:5;
+  width:28px;
+  height:28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:50%;
+  background:#0f766e;
+  color:#fff;
+  font-size:12px;
+  font-weight:700;
+  box-shadow:0 4px 10px rgba(0,0,0,0.18);
+  border:2px solid #fff;
+  cursor:pointer;
+  transition:transform 0.15s ease, background 0.15s ease;
+}
+
+.entrance-icon:hover{ transform:translate(-50%,-50%) scale(1.08); }
+
+.entrance-icon.active{
+  background:#2563eb;
+  transform:translate(-50%,-50%) scale(1.12);
+}
+
+.entrance-label{
+  position:absolute;
+  transform:translate(-50%, 0);
+  padding:4px 8px;
+  font-size:13px;
+  border-radius:999px;
+  background:rgba(15,118,110,0.85);
+  color:#fff;
+  white-space:nowrap;
+  z-index:5;
+  pointer-events:none;
+}
+
+svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:2;
+  pointer-events:none;
+}
+
+.route-main{
+  fill:none;
+  stroke-width:1.2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  opacity:0.95;
+  stroke-dasharray:4 3;
+  animation:flow 1.1s linear infinite;
+}
+
+.route-normal{ stroke:#ff6b35; }
+.route-current{ stroke:#2563eb; }
+.route-short{ stroke:#16a34a; }
+.route-empty{ stroke:#9ca3af; }
+
+@keyframes flow{ to{ stroke-dashoffset:-14; } }
+
+.info{
+  max-width:900px;
+  margin:0 auto 20px;
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:12px 14px;
+  font-size:14px;
+  line-height:1.7;
+}
+
+.info strong{ color:#111; }
+
+@media(max-width:700px){
+  .app-header{
+    display:block;
+    padding:14px 14px 10px;
+    background:#fff;
+    border-bottom:1px solid #e5e7eb;
+  }
+
+    body.route-view-mode{
+    overflow:hidden;
+  }
+
+    body.route-view-mode .app-header,
+    body.route-view-mode .controls,
+    body.route-view-mode .search-panel,
+    body.route-view-mode .map-toolbar,
+    body.route-view-mode .info{
+      display:none;
+    }
+
+    body.route-view-mode .map-wrap.map-expanded{
+      position:fixed;
+      inset:0;
+      transform:none;
+      width:100vw;
+      max-width:none;
+      height:100dvh;
+      margin:0;
+      z-index:200;
+      border-radius:0;
+      background:#111827;
+      overflow:auto;
+      padding-top:48px;
+      box-sizing:border-box;
+    }
+
+    body.route-view-mode .map-wrap.map-expanded img{
+      width:100%;
+      height:auto;
+      display:block;
+    }
+
+    body.route-view-mode .map-wrap.map-expanded svg{
+      width:100%;
+      height:100%;
+    }
+
+    body.route-view-mode .map-wrap.map-expanded .map-close-btn{
+      display:block;
+      position:fixed;
+      top:calc(10px + env(safe-area-inset-top));
+      right:10px;
+      z-index:260;
+    }
+    
+  .app-title{
+    font-size:20px;
+    font-weight:700;
+    line-height:1.2;
+  }
+
+  .app-subtitle{
+    margin-top:4px;
+    color:#666;
+    font-size:13px;
+  }
+
+  .controls{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    padding:8px 10px;
+    top:0;
+    position:relative;
+  }
+
+  .controls label{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    font-size:12px;
+  }
+
+  .controls select{
+    width:100%;
+  }
+
+  .controls button{
+    width:100%;
+    font-size:13px;
+    padding:8px 6px;
+  }
+
+  #showRouteBtn{
+    grid-column:1 / -1;
+    background:#2563eb;
+    color:#fff;
+    border-color:#2563eb;
+    font-weight:700;
+  }
+
+  #entranceButtons{
+    grid-column:1 / -1;
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(88px,1fr));
+    gap:8px;
+  }
+
+  .legend{
+    grid-column:1 / -1;
+    margin-left:0;
+    font-size:12px;
+    text-align:center;
+  }
+
+  .search-panel{
+    margin:10px 10px 0;
+    padding:10px;
+    border-radius:12px;
+    position:sticky;
+    top:0;
+    z-index:18;
+  }
+
+  .map-toolbar{
+    display:flex;
+    margin:10px 10px 0;
+    max-width:none;
+  }
+
+  .map-toggle-btn{
+    width:100%;
+    min-height:44px;
+    background:#2563eb;
+    color:#fff;
+    border-color:#2563eb;
+  }
+
+  .search-row{
+    grid-template-columns:1fr;
+  }
+
+  .search-results{
+    grid-template-columns:1fr;
+    max-height:160px;
+    overflow:auto;
+  }
+
+  .result-card{
+    padding:10px;
+  }
+
+  .map-wrap{
+    margin:12px 10px;
+    max-width:none;
+    overflow:hidden;
+    border-radius:12px;
+  }
+
+  .map-wrap img{
+    width:100%;
+    min-width:0;
+  }
+
+  .map-wrap svg{
+    width:100%;
+    min-width:0;
+  }
+
+  .pin{
+    width:18px;
+    height:18px;
+  }
+
+  .route-label,.entrance-label{
+    font-size:12px;
+    padding:4px 7px;
+  }
+
+  .special-marker{
+    width:28px;
+    height:28px;
+    font-size:15px;
+  }
+
+  .info{
+    margin:0 10px 16px;
+    font-size:13px;
+    border-radius:12px;
+    padding:10px 12px;
+  }
+
+  .route-detail{
+    display:none;
+  }
+}
+
+@media(max-width:420px){
+  .controls{
+    grid-template-columns:1fr;
+  }
+
+  #entranceButtons{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .map-wrap img,
+  .map-wrap svg{
+    min-width:0;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app-header">
+  <div class="app-title">館内ナビ</div>
+  <div class="app-subtitle">入口を選んで、行きたい場所を検索</div>
+</div>
+
+<div class="controls">
+  <label>出発：
+    <select id="start"></select>
+  </label>
+
+  <label>到着：
+    <select id="goal"></select>
+  </label>
+
+  <button id="showRouteBtn" onclick="go()">ルート表示</button>
+  <button id="setCurrentBtn" onclick="enableCurrentMode()">現在地を置く</button>
+  <button onclick="clearCurrentLocation()">現在地を消す</button>
+
+  <span id="entranceButtons"></span>
+
+  <span class="legend">青=現在地/入口から / 緑=短距離 / 橙=通常</span>
+</div>
+
+<div class="search-panel">
+  <div class="search-row">
+    <input id="searchInput" type="text" placeholder="店舗名・カテゴリ・商品で検索 例：コーヒー、雑貨、書籍" oninput="renderSearchResults()">
+    <select id="categoryFilter" onchange="renderSearchResults()">
+      <option value="">すべてのカテゴリ</option>
+    </select>
+  </div>
+  <div class="search-results" id="searchResults"></div>
+</div>
+
+<div class="map-toolbar">
+  <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMapExpand()">地図を大きく表示</button>
+</div>
+
+<div class="map-wrap" id="wrap">
+  <button class="map-close-btn" id="mapCloseBtn" onclick="closeMapExpand()">地図を戻す</button>
+  <img src="./floor1.png" id="floorImage" alt="館内図">
+  <svg viewBox="0 0 100 100" preserveAspectRatio="none" id="svg"></svg>
+</div>
+
+<div class="info" id="infoBox">
+  <strong>使い方：</strong>
+  出発地点と到着地点を選んで「ルート表示」を押してください。<br>
+  検索結果をクリックすると、目的地に設定してルート表示できます。
+</div>
+
+<script>
+let nodes = [];
+let edges = [];
+let locations = [];
+let entrances = [];
+let currentLocation = null;
+let currentMode = false;
+let activeEntranceIndex = null;
+let highlightedLocationIds = [];
+
+const wrap = document.getElementById("wrap");
+const svg = document.getElementById("svg");
+const floorImage = document.getElementById("floorImage");
+const infoBox = document.getElementById("infoBox");
+const startSelect = document.getElementById("start");
+const goalSelect = document.getElementById("goal");
+const setCurrentBtn = document.getElementById("setCurrentBtn");
+const entranceButtons = document.getElementById("entranceButtons");
+const searchInput = document.getElementById("searchInput");
+const categoryFilter = document.getElementById("categoryFilter");
+const searchResults = document.getElementById("searchResults");
+const mapToggleBtn = document.getElementById("mapToggleBtn");
+const mapToolbar = document.querySelector(".map-toolbar");
+
+Promise.all([
+  fetch('./nodes_1f.csv').then(r => r.text()),
+  fetch('./edges_1f.csv').then(r => r.text()),
+  fetch('./locations_1f.csv').then(r => r.text())
+]).then(([n, e, l]) => {
+  nodes = parseCsv(n).map(row => ({
+    id: Number(row.id),
+    floor_id: row.floor_id,
+    x: Number(row.x),
+    y: Number(row.y),
+    type: row.type || "path",
+    name: row.name || ""
+  }));
+
+  edges = parseCsv(e).map(row => ({
+    from: Number(row.from),
+    to: Number(row.to),
+    bidirectional: String(row.bidirectional).toUpperCase() === "TRUE",
+    distance: Number(row.distance || 0),
+    cost: Number(row.cost || 0),
+    type: row.type || "path"
+  }));
+
+  locations = parseCsv(l).map(row => ({
+    id: row.id,
+    name: row.name,
+    type: row.type,
+    floor_id: row.floor_id,
+    x: Number(row.x),
+    y: Number(row.y),
+    node_ids: parseNodeIds(row.node_ids),
+    category: row.category || "",
+    products: row.products || "",
+    description: row.description || "",
+    hours: row.hours || "",
+    status: row.status || "published"
+  })).filter(x => x.status === "published");
+
+  entrances = locations.filter(x => x.type === "entrance");
+
+  init();
+}).catch(err => {
+  infoBox.innerHTML = `
+    <strong>CSVの読み込みに失敗しました。</strong><br>
+    nodes_1f.csv / edges_1f.csv / locations_1f.csv が同じフォルダにあるか確認してください。<br>
+    ${err.message}
+  `;
+});
+
+function parseCsv(text){
+  const lines = text.trim().replace(/\r/g, "").split("\n").filter(Boolean);
+  const headers = splitCsvLine(lines.shift()).map(h => h.trim().replace(/^\uFEFF/, ""));
+
+  return lines.map(line => {
+    const values = splitCsvLine(line);
+    const row = {};
+    headers.forEach((h, i) => row[h] = (values[i] || "").trim());
+    return row;
+  });
+}
+
+function splitCsvLine(line){
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    const next = line[i + 1];
+
+    if (ch === '"' && inQuotes && next === '"') {
+      current += '"';
+      i++;
+    } else if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+
+  result.push(current);
+  return result;
+}
+
+function parseNodeIds(value){
+  if (!value) return [];
+  return String(value).split("|").map(v => Number(v.trim())).filter(Number.isFinite);
+}
+
+function init(){
+  startSelect.innerHTML = "";
+  goalSelect.innerHTML = "";
+  entranceButtons.innerHTML = "";
+
+  const currentOption = document.createElement("option");
+  currentOption.value = "__CURRENT__";
+  currentOption.textContent = "現在地・入口";
+  startSelect.appendChild(currentOption);
+
+  const selectableLocations = locations.filter(x => x.node_ids.length > 0);
+
+  selectableLocations.forEach(location => {
+    const o1 = document.createElement("option");
+    o1.value = location.id;
+    o1.textContent = locationLabel(location);
+    startSelect.appendChild(o1);
+
+    const o2 = document.createElement("option");
+    o2.value = location.id;
+    o2.textContent = locationLabel(location);
+    goalSelect.appendChild(o2);
+  });
+
+  entrances.forEach((entrance, index) => {
+    const btn = document.createElement("button");
+    btn.className = "entrance";
+    btn.id = `entranceBtn${index}`;
+    btn.textContent = entrance.name;
+    btn.onclick = () => setEntrance(index);
+    entranceButtons.appendChild(btn);
+  });
+
+  const shops = locations.filter(x => x.type === "shop");
+  if (shops.length > 0) {
+    startSelect.value = shops[0].id;
+    goalSelect.value = shops[Math.min(1, shops.length - 1)].id;
+  } else if (selectableLocations.length > 0) {
+    startSelect.value = selectableLocations[0].id;
+    goalSelect.value = selectableLocations[Math.min(1, selectableLocations.length - 1)].id;
+  }
+
+  initCategoryFilter();
+  renderSearchResults();
+  renderBase();
+  bindCurrentLocationPlacement();
+  updateEntranceButtons();
+}
+
+function initCategoryFilter(){
+  const categories = [...new Set(
+    locations
+      .map(x => normalizeText(x.category))
+      .filter(Boolean)
+  )].sort();
+
+  categoryFilter.innerHTML = `<option value="">すべてのカテゴリ</option>`;
+  categories.forEach(category => {
+    const option = document.createElement("option");
+    option.value = category;
+    option.textContent = category;
+    categoryFilter.appendChild(option);
+  });
+}
+
+function normalizeText(value){
+  return String(value || "")
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .trim();
+}
+
+function renderSearchResults(){
+  const keyword = normalizeText(searchInput.value);
+  const selectedCategory = normalizeText(categoryFilter.value);
+
+  const targets = locations
+    .filter(x => x.type !== "entrance")
+    .filter(x => x.node_ids.length > 0)
+    .filter(x => !selectedCategory || normalizeText(x.category) === selectedCategory)
+    .filter(x => {
+      if (!keyword) return true;
+
+      const searchText = normalizeText([
+        x.id,
+        x.name,
+        x.type,
+        x.category,
+        x.products,
+        x.description,
+        x.hours
+      ].join(" "));
+
+      return searchText.includes(keyword);
+    })
+    .slice(0, 20);
+
+  searchResults.innerHTML = "";
+
+  if (!targets.length) {
+    const hint = document.createElement("div");
+    hint.className = "result-meta";
+    hint.innerHTML = `
+      該当する候補がありません。<br>
+      <span style="color:#777;">検索対象：店舗名・カテゴリ・products・description</span>
+    `;
+    searchResults.appendChild(hint);
+    return;
+  }
+
+  targets.forEach(location => {
+    const card = document.createElement("div");
+    card.className = "result-card";
+    card.onclick = () => selectSearchResult(location.id);
+
+    card.innerHTML = `
+      <div class="result-title">${escapeHtml(location.name)}</div>
+      <div class="result-meta">
+        ${escapeHtml(locationLabel(location))}<br>
+        カテゴリ：${escapeHtml(location.category || "未設定")}<br>
+        ${escapeHtml(location.products || location.description || "")}
+      </div>
+    `;
+
+    searchResults.appendChild(card);
+  });
+}
+
+function selectSearchResult(locationId){
+  const location = locations.find(x => x.id === locationId);
+  if (!location) return;
+
+  goalSelect.value = locationId;
+  highlightedLocationIds = [locationId];
+  renderBase();
+  drawSpecialMarker(location.x, location.y, "goal", "G");
+
+  infoBox.innerHTML = `
+    <strong>${location.name}を目的地に設定しました。</strong><br>
+    そのまま「ルート表示」を押すか、出発地点を選んでください。<br>
+    ${location.description || ""}
+  `;
+
+  if (startSelect.value === "__CURRENT__" && !currentLocation) return;
+  go();
+}
+
+function locationLabel(location){
+  const typeLabel = {
+    shop: "店舗",
+    entrance: "入口",
+    toilet: "トイレ",
+    elevator: "EV",
+    es_up: "上りES",
+    es_down: "下りES",
+    facility: "設備"
+  }[location.type] || location.type;
+
+  return `${location.name}（${typeLabel}）`;
+}
+
+function renderBase(){
+  document.querySelectorAll(".pin,.node,.route-label,.special-marker,.entrance-icon,.entrance-label").forEach(el => el.remove());
+  svg.innerHTML = "";
+
+  nodes.forEach(n => {
+    const d = document.createElement("div");
+    d.className = "node";
+    d.title = `${n.id}: ${n.name}`;
+    d.style.left = n.x + "%";
+    d.style.top = n.y + "%";
+    wrap.appendChild(d);
+  });
+
+  locations.forEach(location => {
+    if (!Number.isFinite(location.x) || !Number.isFinite(location.y)) return;
+    if (location.type === "entrance") return;
+    if (!highlightedLocationIds.includes(location.id)) return;
+
+    const pin = document.createElement("div");
+    pin.className = `pin ${pinClass(location.type)}`;
+    pin.style.left = location.x + "%";
+    pin.style.top = location.y + "%";
+    pin.title = location.name;
+    wrap.appendChild(pin);
+
+    const label = document.createElement("div");
+    label.className = "route-label";
+    label.style.left = location.x + "%";
+    label.style.top = location.y + "%";
+    label.textContent = location.name;
+    wrap.appendChild(label);
+  });
+
+  entrances.forEach((entrance, index) => {
+    const icon = document.createElement("div");
+    icon.className = "entrance-icon";
+    if (activeEntranceIndex === index) icon.classList.add("active");
+    icon.style.left = entrance.x + "%";
+    icon.style.top = entrance.y + "%";
+    icon.textContent = "入";
+    icon.title = entrance.name;
+    icon.addEventListener("click", event => {
+      event.stopPropagation();
+      setEntrance(index);
+    });
+    wrap.appendChild(icon);
+
+    if (highlightedLocationIds.includes(entrance.id) || activeEntranceIndex === index) {
+      const label = document.createElement("div");
+      label.className = "entrance-label";
+      label.style.left = entrance.x + "%";
+      label.style.top = `calc(${entrance.y}% + 14px)`;
+      label.textContent = entrance.name;
+      wrap.appendChild(label);
+    }
+  });
+
+  if (currentLocation) {
+    drawSpecialMarker(currentLocation.x, currentLocation.y, "current", "現");
+  }
+}
+
+function pinClass(type){
+  if (type === "toilet" || type === "elevator" || type === "facility") return "facility";
+  if (type === "es_up" || type === "es_down") return "es";
+  if (type === "entrance") return "entrance";
+  return "";
+}
+
+function drawSpecialMarker(x, y, type, text){
+  const marker = document.createElement("div");
+  marker.className = `special-marker ${type}`;
+  marker.style.left = x + "%";
+  marker.style.top = y + "%";
+  marker.textContent = text;
+  wrap.appendChild(marker);
+}
+
+function bindCurrentLocationPlacement(){
+  wrap.addEventListener("click", e => {
+    if (!currentMode) return;
+
+    const rect = floorImage.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+    currentLocation = {
+      x,
+      y,
+      node_ids: [nearest(x, y).id],
+      name: "現在地"
+    };
+
+    activeEntranceIndex = null;
+    currentMode = false;
+    setCurrentBtn.classList.remove("active-mode");
+    startSelect.value = "__CURRENT__";
+
+    renderBase();
+    updateEntranceButtons();
+
+    infoBox.innerHTML = `
+      <strong>現在地を設定しました。</strong><br>
+      x=${x.toFixed(2)}, y=${y.toFixed(2)} に現在地を配置しました。<br>
+      接続ノード：${currentLocation.node_ids[0]}
+    `;
+  });
+}
+
+function enableCurrentMode(){
+  currentMode = true;
+  activeEntranceIndex = null;
+  setCurrentBtn.classList.add("active-mode");
+  updateEntranceButtons();
+
+  infoBox.innerHTML = `
+    <strong>現在地配置モードです。</strong><br>
+    次に館内図上をクリックすると、その場所を現在地として設定します。
+  `;
+}
+
+function clearCurrentLocation(){
+  highlightedLocationIds = [];
+  currentLocation = null;
+  activeEntranceIndex = null;
+  currentMode = false;
+  setCurrentBtn.classList.remove("active-mode");
+  updateEntranceButtons();
+  renderBase();
+  svg.innerHTML = "";
+
+  infoBox.innerHTML = `
+    <strong>現在地を消しました。</strong><br>
+    必要なら再度「現在地を置く」を押して館内図をクリックしてください。
+  `;
+}
+
+function setEntrance(index){
+  const entrance = entrances[index];
+  highlightedLocationIds = [entrance.id];
+
+  currentLocation = {
+    x: entrance.x,
+    y: entrance.y,
+    node_ids: entrance.node_ids,
+    name: entrance.name
+  };
+
+  activeEntranceIndex = index;
+  currentMode = false;
+  setCurrentBtn.classList.remove("active-mode");
+  startSelect.value = "__CURRENT__";
+
+  updateEntranceButtons();
+  renderBase();
+
+  infoBox.innerHTML = `
+    <strong>${entrance.name}を出発地点に設定しました。</strong><br>
+    接続ノード：${entrance.node_ids.join("|")}<br>
+    検索または到着プルダウンから目的地を選んでください。
+  `;
+}
+
+function updateEntranceButtons(){
+  entrances.forEach((_, i) => {
+    const btn = document.getElementById(`entranceBtn${i}`);
+    if (!btn) return;
+    btn.classList.remove("active-entrance");
+    if (activeEntranceIndex === i) btn.classList.add("active-entrance");
+  });
+}
+
+function nearest(x, y){
+  return nodes.reduce((a, b) =>
+    Math.hypot(b.x - x, b.y - y) < Math.hypot(a.x - x, a.y - y) ? b : a
+  );
+}
+
+function route(start, end){
+  const dist = {};
+  const prev = {};
+  const q = nodes.map(n => n.id);
+
+  nodes.forEach(n => dist[n.id] = Infinity);
+  dist[start] = 0;
+
+  while (q.length) {
+    q.sort((a, b) => dist[a] - dist[b]);
+    const u = q.shift();
+
+    if (u === end) break;
+    if (dist[u] === Infinity) break;
+
+    neighborsOf(u).forEach(({ id: v, weight }) => {
+      const alt = dist[u] + weight;
+      if (alt < dist[v]) {
+        dist[v] = alt;
+        prev[v] = u;
+      }
+    });
+  }
+
+  const path = [];
+  let u = end;
+
+  while (u !== undefined) {
+    path.unshift(u);
+    u = prev[u];
+  }
+
+  if (path.length === 1 && path[0] !== start) return [];
+  return path;
+}
+
+function neighborsOf(nodeId){
+  const neighbors = [];
+
+  edges.forEach(edge => {
+    const weight = edge.cost > 0 ? edge.cost : edge.distance > 0 ? edge.distance : 1;
+
+    if (edge.from === nodeId) {
+      neighbors.push({ id: edge.to, weight });
+    }
+
+    if (edge.bidirectional && edge.to === nodeId) {
+      neighbors.push({ id: edge.from, weight });
+    }
+  });
+
+  return neighbors.filter(n => nodes.some(node => node.id === n.id));
+}
+
+function bestRouteBetween(startNodeIds, goalNodeIds){
+  let best = null;
+
+  startNodeIds.forEach(startId => {
+    goalNodeIds.forEach(goalId => {
+      const path = route(startId, goalId);
+      if (!path.length) return;
+
+      if (!best || path.length < best.path.length) {
+        best = { startId, goalId, path };
+      }
+    });
+  });
+
+  return best;
+}
+
+function getRouteClass(path, fromCurrent){
+  if (!path || path.length === 0) return "route-empty";
+  if (fromCurrent) return "route-current";
+  if (path.length <= 4) return "route-short";
+  return "route-normal";
+}
+
+function go(){
+  const startId = startSelect.value;
+  const goalId = goalSelect.value;
+
+  highlightedLocationIds = [goalId];
+  if (startId !== "__CURRENT__") highlightedLocationIds.push(startId);
+
+  renderBase();
+
+  const goalLocation = locations.find(x => x.id === goalId);
+  if (!goalLocation) {
+    infoBox.innerHTML = `<strong>目的地が見つかりません。</strong>`;
+    return;
+  }
+
+  let startLocation = null;
+  let startName = "";
+  let fromCurrent = startId === "__CURRENT__";
+
+  if (fromCurrent) {
+    if (!currentLocation || !currentLocation.node_ids || !currentLocation.node_ids.length) {
+      infoBox.innerHTML = `
+        <strong>現在地が未設定です。</strong><br>
+        「現在地を置く」または入口アイコン/入口ボタンで出発地点を設定してください。
+      `;
+      return;
+    }
+    startLocation = currentLocation;
+    startName = currentLocation.name || "現在地";
+  } else {
+    startLocation = locations.find(x => x.id === startId);
+    if (!startLocation) {
+      infoBox.innerHTML = `<strong>出発地点が見つかりません。</strong>`;
+      return;
+    }
+    startName = startLocation.name;
+  }
+
+  const best = bestRouteBetween(startLocation.node_ids, goalLocation.node_ids);
+
+  if (!best) {
+    svg.innerHTML = "";
+    drawSpecialMarker(startLocation.x, startLocation.y, fromCurrent ? "current" : "start", "S");
+    drawSpecialMarker(goalLocation.x, goalLocation.y, "goal", "G");
+
+    infoBox.innerHTML = `
+      <strong>ルートが見つかりませんでした。</strong><br>
+      接続が途中で切れている可能性があります。<br>
+      出発地点：${startName} / 目的地：${goalLocation.name}<br>
+      出発ノード候補：${startLocation.node_ids.join("|")} / 目的ノード候補：${goalLocation.node_ids.join("|")}
+    `;
+    return;
+  }
+
+  const nodePoints = best.path.map(id => {
+    const n = nodes.find(x => x.id === id);
+    return `${n.x},${n.y}`;
+  }).join(" ");
+
+  const routeClass = getRouteClass(best.path, fromCurrent);
+
+  svg.innerHTML = `
+    <polyline class="route-main ${routeClass}" points="${nodePoints}"></polyline>
+  `;
+
+  drawSpecialMarker(startLocation.x, startLocation.y, fromCurrent ? "current" : "start", "S");
+  drawSpecialMarker(goalLocation.x, goalLocation.y, "goal", "G");
+
+   infoBox.innerHTML = `
+    <strong>ルートを表示しました。</strong>
+    <span class="route-detail"><br>
+      出発地点：${startName}<br>
+      目的地：${goalLocation.name}<br>
+      採用ノード：${best.startId} → ${best.goalId}<br>
+      使用ノード数：${best.path.length}<br>
+      経路：${best.path.join(" → ")}<br>
+      ${goalLocation.description || ""}
+    </span>
+  `;
+
+  openRouteViewOnMobile();
+}
+
+function openRouteViewOnMobile(){
+  if (!window.matchMedia("(max-width:700px)").matches) return;
+
+  document.body.classList.add("route-view-mode");
+  openMapExpand();
+}
+
+function toggleMapExpand(){
+  if (wrap.classList.contains("map-expanded")) {
+    closeMapExpand();
+  } else {
+    openMapExpand();
+  }
+}
+
+function openMapExpand(){
+  wrap.classList.add("map-expanded");
+  mapToolbar.classList.add("map-toolbar-expanded");
+  mapToggleBtn.textContent = "地図を戻す";
+  document.body.style.overflow = "hidden";
+}
+
+function closeMapExpand(){
+  wrap.classList.remove("map-expanded");
+  mapToolbar.classList.remove("map-toolbar-expanded");
+  mapToggleBtn.textContent = "地図を大きく表示";
+  document.body.style.overflow = "";
+  document.body.classList.remove("route-view-mode");
+}
+
+function escapeHtml(value){
+  return String(value || "").replace(/[&<>"]/g, ch => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;"
+  }[ch]));
+}
+</script>
+
+</body>
+</html>

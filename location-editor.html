@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>ロケーション編集（新CSV対応版）</title>
+
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  display:flex;
+  height:100vh;
+  background:#eef3f9;
+  color:#222;
+}
+
+.sidebar{
+  width:420px;
+  background:#fff;
+  padding:12px;
+  border-right:1px solid #ddd;
+  box-sizing:border-box;
+  overflow:auto;
+}
+
+.sidebar h3{ margin:0 0 10px; }
+
+.back-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:10px;
+  padding:7px 10px;
+  border:1px solid #dbeafe;
+  border-radius:8px;
+  background:#eff6ff;
+  color:#2563eb;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:bold;
+}
+
+.backup-note{
+  margin:10px 0 12px;
+  padding:10px 12px;
+  border:1px solid #fed7aa;
+  border-radius:10px;
+  background:#fff7ed;
+  color:#9a3412;
+  font-size:12px;
+  line-height:1.6;
+}
+
+.tools{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-bottom:10px;
+}
+
+button,input,select,textarea{
+  padding:7px 9px;
+  border:1px solid #ccc;
+  border-radius:8px;
+  background:#fff;
+  font-size:13px;
+  font-family:inherit;
+}
+
+button{ cursor:pointer; }
+
+button.primary{
+  background:#2563eb;
+  color:#fff;
+  border-color:#2563eb;
+}
+
+button.active{
+  background:#16a34a;
+  color:#fff;
+  border-color:#16a34a;
+}
+
+button.danger{
+  color:#dc2626;
+  border-color:#fecaca;
+}
+
+.note{
+  font-size:12px;
+  color:#666;
+  line-height:1.6;
+  margin:8px 0 12px;
+}
+
+.status{
+  padding:8px;
+  border-radius:10px;
+  background:#f8fafc;
+  border:1px solid #e5e7eb;
+  font-size:12px;
+  line-height:1.6;
+  margin-bottom:10px;
+}
+
+.filter-box{
+  display:grid;
+  grid-template-columns:1fr 130px;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.location-list{
+  list-style:none;
+  padding:0;
+  margin:0;
+}
+
+.location-item{
+  border:1px solid #e5e7eb;
+  border-radius:10px;
+  padding:8px;
+  margin-bottom:8px;
+  cursor:pointer;
+  background:#fff;
+}
+
+.location-item.active{
+  border-color:#2563eb;
+  background:#eff6ff;
+}
+
+.location-title{
+  font-weight:bold;
+  font-size:13px;
+  margin-bottom:4px;
+}
+
+.location-meta{
+  font-size:12px;
+  color:#555;
+  line-height:1.5;
+}
+
+.editor{
+  border-top:1px solid #ddd;
+  margin-top:12px;
+  padding-top:12px;
+}
+
+.editor label{
+  display:block;
+  font-size:12px;
+  margin:8px 0 3px;
+  color:#555;
+}
+
+.editor input,.editor select,.editor textarea{
+  width:100%;
+  box-sizing:border-box;
+}
+
+.editor textarea{
+  min-height:58px;
+  resize:vertical;
+}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.map{
+  flex:1;
+  display:block;
+  padding:18px;
+  box-sizing:border-box;
+  overflow:auto;
+}
+
+.map-wrap{
+  position:relative;
+  width:min(1000px,100%);
+  min-width:900px;
+  margin:0 auto;
+  background:#fff;
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+}
+
+img{
+  width:100%;
+  display:block;
+  user-select:none;
+  -webkit-user-drag:none;
+}
+
+.node-dot{
+  position:absolute;
+  width:8px;
+  height:8px;
+  background:#111827;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  opacity:0.35;
+  z-index:2;
+}
+
+.node-label{
+  position:absolute;
+  transform:translate(-50%,-145%);
+  background:rgba(17,24,39,0.68);
+  color:#fff;
+  padding:1px 5px;
+  border-radius:999px;
+  font-size:10px;
+  white-space:nowrap;
+  pointer-events:none;
+  z-index:2;
+}
+
+.location-pin{
+  position:absolute;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  transform:translate(-50%,-50%);
+  border:2px solid #fff;
+  box-shadow:0 3px 9px rgba(0,0,0,0.25);
+  cursor:grab;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-size:11px;
+  font-weight:bold;
+}
+
+.location-pin:active{ cursor:grabbing; }
+
+.location-pin.active{
+  width:24px;
+  height:24px;
+  z-index:6;
+  outline:3px solid rgba(37,99,235,0.25);
+}
+
+.location-pin.shop{ background:#dc2626; }
+.location-pin.entrance{ background:#0f766e; }
+.location-pin.toilet{ background:#0284c7; }
+.location-pin.elevator{ background:#f59e0b; }
+.location-pin.es_up,.location-pin.es_down{ background:#9333ea; }
+.location-pin.facility{ background:#64748b; }
+
+.location-label{
+  position:absolute;
+  transform:translate(-50%,-145%);
+  background:rgba(0,0,0,0.72);
+  color:#fff;
+  padding:2px 6px;
+  border-radius:999px;
+  font-size:11px;
+  white-space:nowrap;
+  pointer-events:none;
+  z-index:5;
+}
+
+.crosshair{ cursor:crosshair; }
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <a class="back-link" href="./editor-menu.html">← 管理メニューに戻る</a>
+
+  <h3>ロケーション編集</h3>
+
+ <div class="backup-note">
+  <strong>作業前の確認：</strong><br>
+  大きな変更を行う前は、管理メニューの「バックアップ管理」から
+  nodes_1f.csv / edges_1f.csv / locations_1f.csv の3つを選択し、
+  バックアップJSONを作成してください。<br><br>
+  <strong>保存先：</strong><br>
+  CSV出力時は、保存先に <strong>mall-map</strong> フォルダを選び、
+  同名CSVを上書き保存してください。
+ </div>
+
+
+ <div class="tools">
+  <button type="button" class="primary" onclick="loadData()">CSV再読込</button>
+  <button type="button" id="addBtn" onclick="toggleAddMode()">新規追加</button>
+  <button type="button" onclick="exportCSV()">CSV出力</button>
+  <button type="button" class="danger" onclick="deleteSelectedLocation()">選択削除</button>
+ </div>
+
+  <div class="note">
+    対応形式：<br>
+    <code>locations_1f.csv: id,name,type,floor_id,x,y,node_ids,category,products,description,hours,status</code><br><br>
+    ピンはドラッグで移動できます。<br>
+    地図クリックで新規ロケーションを追加できます。<br>
+    <strong>node_ids はルート接続先</strong>、x/y はピン表示位置です。
+  </div>
+
+  <div class="status" id="statusBox">CSVを読み込んでください。</div>
+
+  <div class="filter-box">
+    <input id="searchInput" type="text" placeholder="店舗名・カテゴリ検索" oninput="renderList()">
+    <select id="typeFilter" onchange="renderList()">
+      <option value="">すべて</option>
+      <option value="shop">shop</option>
+      <option value="entrance">entrance</option>
+      <option value="toilet">toilet</option>
+      <option value="elevator">elevator</option>
+      <option value="es_up">es_up</option>
+      <option value="es_down">es_down</option>
+      <option value="facility">facility</option>
+    </select>
+  </div>
+
+  <ul class="location-list" id="locationList"></ul>
+
+  <div class="editor" id="editor" style="display:none;">
+    <h3>選択ロケーション</h3>
+
+    <label>id</label>
+    <input id="editId" type="text" oninput="updateSelectedFromForm()">
+
+    <label>name</label>
+    <input id="editName" type="text" oninput="updateSelectedFromForm()">
+
+    <div class="row">
+      <div>
+        <label>type</label>
+        <select id="editType" onchange="updateSelectedFromForm()">
+          <option value="shop">shop</option>
+          <option value="entrance">entrance</option>
+          <option value="toilet">toilet</option>
+          <option value="elevator">elevator</option>
+          <option value="es_up">es_up</option>
+          <option value="es_down">es_down</option>
+          <option value="facility">facility</option>
+        </select>
+      </div>
+      <div>
+        <label>floor_id</label>
+        <input id="editFloor" type="text" value="1F" oninput="updateSelectedFromForm()">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>x</label>
+        <input id="editX" type="number" step="0.01" oninput="updateSelectedFromForm()">
+      </div>
+      <div>
+        <label>y</label>
+        <input id="editY" type="number" step="0.01" oninput="updateSelectedFromForm()">
+      </div>
+    </div>
+
+    <label>node_ids</label>
+    <input id="editNodeIds" type="text" placeholder="例：3 または 7|9" oninput="updateSelectedFromForm()">
+
+    <label>category</label>
+    <input id="editCategory" type="text" oninput="updateSelectedFromForm()">
+
+    <label>products</label>
+    <input id="editProducts" type="text" placeholder="例：文具|生活雑貨|ギフト" oninput="updateSelectedFromForm()">
+
+    <label>description</label>
+    <textarea id="editDescription" oninput="updateSelectedFromForm()"></textarea>
+
+    <div class="row">
+      <div>
+        <label>hours</label>
+        <input id="editHours" type="text" placeholder="10:00-21:00" oninput="updateSelectedFromForm()">
+      </div>
+      <div>
+        <label>status</label>
+        <select id="editStatus" onchange="updateSelectedFromForm()">
+          <option value="published">published</option>
+          <option value="draft">draft</option>
+          <option value="hidden">hidden</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="map">
+  <div class="map-wrap" id="wrap">
+    <img src="./floor1.png" id="img" alt="館内図">
+  </div>
+</div>
+
+<script>
+let locations = [];
+let nodes = [];
+let selectedId = null;
+let draggingId = null;
+let addMode = false;
+let showNodes = true;
+
+const wrap = document.getElementById("wrap");
+const img = document.getElementById("img");
+const locationList = document.getElementById("locationList");
+const editor = document.getElementById("editor");
+const statusBox = document.getElementById("statusBox");
+const addBtn = document.getElementById("addBtn");
+
+window.addEventListener("load", loadData);
+
+function loadData(){
+  Promise.all([
+    fetch("./locations_1f.csv").then(r => {
+      if (!r.ok) throw new Error("locations_1f.csv を読み込めませんでした");
+      return r.text();
+    }),
+    fetch("./nodes_1f.csv").then(r => r.ok ? r.text() : "")
+  ]).then(([locationText, nodeText]) => {
+    locations = parseCsv(locationText).map(row => normalizeLocation(row))
+      .filter(l => l.id && Number.isFinite(l.x) && Number.isFinite(l.y));
+
+    nodes = nodeText ? parseCsv(nodeText).map(row => ({
+      id: Number(row.id),
+      floor_id: row.floor_id || "1F",
+      x: Number(row.x),
+      y: Number(row.y),
+      type: row.type || "path",
+      name: row.name || ""
+    })).filter(n => Number.isFinite(n.id) && Number.isFinite(n.x) && Number.isFinite(n.y)) : [];
+
+    selectedId = locations.length ? locations[0].id : null;
+    addMode = false;
+    wrap.classList.remove("crosshair");
+    updateStatus();
+    render();
+  }).catch(err => {
+    statusBox.innerHTML = `<strong>読み込み失敗：</strong><br>${escapeHtml(err.message)}`;
+  });
+}
+
+function normalizeLocation(row){
+  return {
+    id: (row.id || "").trim(),
+    name: (row.name || "").trim(),
+    type: (row.type || "shop").trim(),
+    floor_id: (row.floor_id || "1F").trim(),
+    x: Number(row.x),
+    y: Number(row.y),
+    node_ids: (row.node_ids || "").trim(),
+    category: (row.category || "").trim(),
+    products: (row.products || "").trim(),
+    description: (row.description || "").trim(),
+    hours: (row.hours || "").trim(),
+    status: (row.status || "published").trim()
+  };
+}
+
+function parseCsv(text){
+  const lines = text.trim().replace(/\r/g, "").split("\n").filter(Boolean);
+  if (!lines.length) return [];
+
+  const headers = splitCsvLine(lines.shift()).map(h => h.trim().replace(/^\uFEFF/, ""));
+
+  return lines.map(line => {
+    const values = splitCsvLine(line);
+    const row = {};
+    headers.forEach((h, i) => row[h] = (values[i] || "").trim());
+    return row;
+  });
+}
+
+function splitCsvLine(line){
+  const result = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    const next = line[i + 1];
+
+    if (ch === '"' && inQuotes && next === '"') {
+      current += '"';
+      i++;
+    } else if (ch === '"') {
+      inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+
+  result.push(current);
+  return result;
+}
+
+function render(){
+  renderMap();
+  renderList();
+  renderForm();
+}
+
+function renderMap(){
+  document.querySelectorAll(".location-pin,.location-label,.node-dot,.node-label").forEach(el => el.remove());
+
+  if (showNodes) {
+    nodes.forEach(node => {
+      const dot = document.createElement("div");
+      dot.className = "node-dot";
+      dot.style.left = node.x + "%";
+      dot.style.top = node.y + "%";
+      dot.title = `${node.id}: ${node.name}`;
+      wrap.appendChild(dot);
+
+      const label = document.createElement("div");
+      label.className = "node-label";
+      label.style.left = node.x + "%";
+      label.style.top = node.y + "%";
+      label.textContent = node.id;
+      wrap.appendChild(label);
+    });
+  }
+
+  locations.forEach(location => {
+    if (location.status === "hidden") return;
+
+    const pin = document.createElement("div");
+    pin.className = `location-pin ${location.type}`;
+    if (location.id === selectedId) pin.classList.add("active");
+    pin.style.left = location.x + "%";
+    pin.style.top = location.y + "%";
+    pin.textContent = pinText(location.type);
+    pin.title = `${location.id}: ${location.name}`;
+
+    pin.addEventListener("mousedown", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      draggingId = location.id;
+      selectedId = location.id;
+      render();
+    });
+
+    pin.addEventListener("click", e => {
+      e.stopPropagation();
+      selectedId = location.id;
+      render();
+    });
+
+    wrap.appendChild(pin);
+
+    const label = document.createElement("div");
+    label.className = "location-label";
+    label.style.left = location.x + "%";
+    label.style.top = location.y + "%";
+    label.textContent = location.name;
+    wrap.appendChild(label);
+  });
+}
+
+function pinText(type){
+  if (type === "entrance") return "入";
+  if (type === "toilet") return "WC";
+  if (type === "elevator") return "EV";
+  if (type === "es_up") return "↑";
+  if (type === "es_down") return "↓";
+  if (type === "facility") return "設";
+  return "店";
+}
+
+function renderList(){
+  const keyword = document.getElementById("searchInput").value.trim().toLowerCase();
+  const type = document.getElementById("typeFilter").value;
+
+  const filtered = locations.filter(l => {
+    const text = `${l.id} ${l.name} ${l.category} ${l.products} ${l.description}`.toLowerCase();
+    const keywordMatch = !keyword || text.includes(keyword);
+    const typeMatch = !type || l.type === type;
+    return keywordMatch && typeMatch;
+  });
+
+  locationList.innerHTML = "";
+
+  filtered.forEach(location => {
+    const li = document.createElement("li");
+    li.className = "location-item";
+    if (location.id === selectedId) li.classList.add("active");
+
+    li.innerHTML = `
+      <div class="location-title">${escapeHtml(location.id)}：${escapeHtml(location.name || "名称なし")}</div>
+      <div class="location-meta">
+        ${escapeHtml(location.type)} / ${escapeHtml(location.category)} / ${escapeHtml(location.status)}<br>
+        x=${round2(location.x)}, y=${round2(location.y)} / node_ids=${escapeHtml(location.node_ids)}
+      </div>
+    `;
+
+    li.onclick = () => {
+      selectedId = location.id;
+      render();
+    };
+
+    locationList.appendChild(li);
+  });
+}
+
+function renderForm(){
+  const l = locations.find(x => x.id === selectedId);
+  if (!l) {
+    editor.style.display = "none";
+    return;
+  }
+
+  editor.style.display = "block";
+  document.getElementById("editId").value = l.id;
+  document.getElementById("editName").value = l.name;
+  document.getElementById("editType").value = l.type;
+  document.getElementById("editFloor").value = l.floor_id;
+  document.getElementById("editX").value = round2(l.x);
+  document.getElementById("editY").value = round2(l.y);
+  document.getElementById("editNodeIds").value = l.node_ids;
+  document.getElementById("editCategory").value = l.category;
+  document.getElementById("editProducts").value = l.products;
+  document.getElementById("editDescription").value = l.description;
+  document.getElementById("editHours").value = l.hours;
+  document.getElementById("editStatus").value = l.status;
+}
+
+function updateSelectedFromForm(){
+  const l = locations.find(x => x.id === selectedId);
+  if (!l) return;
+
+  const newId = document.getElementById("editId").value.trim();
+  if (newId) {
+    l.id = newId;
+    selectedId = newId;
+  }
+
+  l.name = document.getElementById("editName").value.trim();
+  l.type = document.getElementById("editType").value;
+  l.floor_id = document.getElementById("editFloor").value.trim() || "1F";
+  l.x = Number(document.getElementById("editX").value);
+  l.y = Number(document.getElementById("editY").value);
+  l.node_ids = document.getElementById("editNodeIds").value.trim();
+  l.category = document.getElementById("editCategory").value.trim();
+  l.products = document.getElementById("editProducts").value.trim();
+  l.description = document.getElementById("editDescription").value.trim();
+  l.hours = document.getElementById("editHours").value.trim();
+  l.status = document.getElementById("editStatus").value;
+
+  updateStatus();
+  render();
+}
+
+function toggleAddMode(){
+  addMode = !addMode;
+  addBtn.classList.toggle("active", addMode);
+  wrap.classList.toggle("crosshair", addMode);
+  updateStatus(addMode ? "新規追加モード：地図上をクリックしてください。" : null);
+}
+
+wrap.addEventListener("click", e => {
+  if (!addMode) return;
+
+  const pos = getMapPosition(e);
+  const nextId = nextLocationId();
+  const nearestNode = nearest(pos.x, pos.y);
+
+  locations.push({
+    id: nextId,
+    name: "新規ロケーション",
+    type: "shop",
+    floor_id: "1F",
+    x: pos.x,
+    y: pos.y,
+    node_ids: nearestNode ? String(nearestNode.id) : "",
+    category: "",
+    products: "",
+    description: "",
+    hours: "10:00-21:00",
+    status: "published"
+  });
+
+  selectedId = nextId;
+  addMode = false;
+  addBtn.classList.remove("active");
+  wrap.classList.remove("crosshair");
+  updateStatus(`新規ロケーションを追加しました：${nextId}`);
+  render();
+});
+
+window.addEventListener("mousemove", e => {
+  if (!draggingId) return;
+
+  const l = locations.find(x => x.id === draggingId);
+  if (!l) return;
+
+  const pos = getMapPosition(e);
+  l.x = pos.x;
+  l.y = pos.y;
+  selectedId = l.id;
+  render();
+});
+
+window.addEventListener("mouseup", () => {
+  draggingId = null;
+});
+
+function getMapPosition(e){
+  const rect = img.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * 100;
+  const y = ((e.clientY - rect.top) / rect.height) * 100;
+
+  return {
+    x: Math.max(0, Math.min(100, x)),
+    y: Math.max(0, Math.min(100, y))
+  };
+}
+
+function nearest(x, y){
+  if (!nodes.length) return null;
+  return nodes.reduce((a, b) =>
+    Math.hypot(b.x - x, b.y - y) < Math.hypot(a.x - x, a.y - y) ? b : a
+  );
+}
+
+function nextLocationId(){
+  const favNumbers = locations
+    .map(l => /^FAV-(\d+)$/.exec(l.id))
+    .filter(Boolean)
+    .map(m => Number(m[1]));
+
+  const next = favNumbers.length ? Math.max(...favNumbers) + 1 : 1;
+  return `FAV-${String(next).padStart(3, "0")}`;
+}
+
+function deleteSelectedLocation(){
+  const l = locations.find(x => x.id === selectedId);
+  if (!l) return;
+
+  if (!confirm(`${l.id}：${l.name} を削除しますか？`)) return;
+
+  locations = locations.filter(x => x.id !== selectedId);
+  selectedId = locations.length ? locations[0].id : null;
+  updateStatus("ロケーションを削除しました。");
+  render();
+}
+
+function exportCSV(){
+  let csv = "id,name,type,floor_id,x,y,node_ids,category,products,description,hours,status\n";
+
+  locations.forEach(l => {
+    csv += [
+      csvEscape(l.id),
+      csvEscape(l.name),
+      csvEscape(l.type),
+      csvEscape(l.floor_id),
+      round2(l.x),
+      round2(l.y),
+      csvEscape(l.node_ids),
+      csvEscape(l.category),
+      csvEscape(l.products),
+      csvEscape(l.description),
+      csvEscape(l.hours),
+      csvEscape(l.status)
+    ].join(",") + "\n";
+  });
+
+  const blob = new Blob(["\uFEFF" + csv], { type:"text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "locations_1f.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function updateStatus(message){
+  if (message) {
+    statusBox.innerHTML = escapeHtml(message);
+    return;
+  }
+
+  const missingNodeLocations = locations.filter(l => {
+    if (!l.node_ids) return true;
+    return l.node_ids.split("|").some(id => !nodes.some(n => n.id === Number(id.trim())));
+  });
+
+  statusBox.innerHTML = `
+    ロケーション数：${locations.length}<br>
+    ノード数：${nodes.length}<br>
+    node_ids未設定・未定義：${missingNodeLocations.length}
+  `;
+}
+
+function csvEscape(value){
+  const s = String(value ?? "");
+  if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+function escapeHtml(value){
+  return String(value).replace(/[&<>"]/g, ch => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;"
+  }[ch]));
+}
+
+function round2(value){
+  return Math.round(Number(value) * 100) / 100;
+}
+</script>
+
+</body>
+</html>

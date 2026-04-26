@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>館内ナビ 管理メニュー</title>
+
+<style>
+:root{
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --text:#1f2937;
+  --muted:#6b7280;
+  --line:#e5e7eb;
+  --blue:#2563eb;
+  --green:#16a34a;
+  --purple:#7c3aed;
+  --orange:#f97316;
+  --teal:#0f766e;
+  --shadow:0 10px 24px rgba(15,23,42,0.08);
+}
+
+*{ box-sizing:border-box; }
+
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:linear-gradient(180deg,#f8fbff 0%,var(--bg) 100%);
+  color:var(--text);
+}
+
+.header{
+  max-width:1040px;
+  margin:0 auto;
+  padding:36px 20px 20px;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:5px 10px;
+  border-radius:999px;
+  background:#eaf2ff;
+  color:#1d4ed8;
+  font-size:13px;
+  font-weight:700;
+}
+
+h1{
+  margin:14px 0 8px;
+  font-size:32px;
+  line-height:1.25;
+}
+
+.lead{
+  margin:0;
+  color:var(--muted);
+  line-height:1.8;
+  font-size:15px;
+}
+
+.container{
+  max-width:1040px;
+  margin:0 auto;
+  padding:0 20px 40px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+  margin-top:18px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:18px;
+  box-shadow:var(--shadow);
+  transition:transform .15s ease,box-shadow .15s ease,border .15s ease;
+}
+
+.card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 14px 30px rgba(15,23,42,0.12);
+  border-color:#cbd5e1;
+}
+
+.card-top{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:10px;
+}
+
+.icon{
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:#fff;
+  font-size:20px;
+  font-weight:800;
+  flex:none;
+}
+
+.icon.demo{ background:var(--blue); }
+.icon.location{ background:var(--green); }
+.icon.node{ background:var(--purple); }
+.icon.edge{ background:var(--orange); }
+.icon.backup{ background:var(--teal); }
+
+.card h2{
+  margin:0;
+  font-size:18px;
+}
+
+.card p{
+  margin:8px 0 14px;
+  color:var(--muted);
+  line-height:1.7;
+  font-size:14px;
+}
+
+.actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+a.button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
+  padding:9px 13px;
+  border-radius:10px;
+  text-decoration:none;
+  border:1px solid var(--line);
+  color:var(--text);
+  background:#fff;
+  font-weight:700;
+  font-size:14px;
+}
+
+a.button.primary{
+  background:var(--blue);
+  color:#fff;
+  border-color:var(--blue);
+}
+
+.section{
+  margin-top:22px;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:18px;
+  box-shadow:var(--shadow);
+}
+
+.section h2{
+  margin:0 0 10px;
+  font-size:18px;
+}
+
+.flow{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;
+}
+
+.step{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  background:#fafafa;
+}
+
+.step-number{
+  width:26px;
+  height:26px;
+  border-radius:999px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#111827;
+  color:#fff;
+  font-size:13px;
+  font-weight:800;
+  margin-bottom:8px;
+}
+
+.step-title{
+  font-weight:800;
+  margin-bottom:4px;
+}
+
+.step-text{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.6;
+}
+
+.files{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-top:10px;
+}
+
+.file{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px;
+  background:#f8fafc;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:13px;
+}
+
+.footer{
+  max-width:1040px;
+  margin:0 auto;
+  padding:0 20px 28px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.7;
+}
+
+@media(max-width:900px){
+  .flow{ grid-template-columns:repeat(2,1fr); }
+}
+
+@media(max-width:760px){
+  .header{ padding:24px 14px 12px; }
+  h1{ font-size:25px; }
+  .container{ padding:0 14px 28px; }
+  .grid{ grid-template-columns:1fr; }
+  .flow{ grid-template-columns:1fr; }
+  .files{ grid-template-columns:1fr; }
+  .card{ border-radius:16px; }
+}
+</style>
+</head>
+
+<body>
+<header class="header">
+  <div class="badge">管理メニュー</div>
+  <h1>館内ナビ 管理システム</h1>
+  <p class="lead">
+    来館者向けデモの確認と、店舗・ノード・通路接続データの編集を行うための管理画面です。<br>
+    大きな変更の前後には、バックアップ管理で3CSVを選択し、バックアップJSONを保存してください。
+  </p>
+</header>
+
+<main class="container">
+  <div class="grid">
+    <section class="card">
+      <div class="card-top">
+        <div class="icon node">点</div>
+        <h2>1. ノード編集</h2>
+      </div>
+      <p>通路の分岐点、入口前、設備前など、人が歩ける地点を地図上で編集します。</p>
+      <div class="actions">
+        <a class="button primary" href="./node-editor.html">ノード編集を開く</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-top">
+        <div class="icon edge">線</div>
+        <h2>2. エッジ編集</h2>
+      </div>
+      <p>ノード同士の接続を編集します。通路は双方向、エスカレータは一方向で管理します。</p>
+      <div class="actions">
+        <a class="button primary" href="./edge-editor.html">エッジ編集を開く</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-top">
+        <div class="icon location">店</div>
+        <h2>3. ロケーション編集</h2>
+      </div>
+      <p>店舗、入口、トイレ、エスカレータなどのロケーション情報を編集します。</p>
+      <div class="actions">
+        <a class="button primary" href="./location-editor.html">ロケーション編集を開く</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-top">
+        <div class="icon backup">保</div>
+        <h2>4. バックアップ管理</h2>
+      </div>
+      <p>nodes・edges・locationsの3CSVを選択し、1つのバックアップJSONとして保存・復元します。</p>
+      <div class="actions">
+        <a class="button primary" href="./backup-manager.html">バックアップ管理を開く</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-top">
+        <div class="icon demo">▶</div>
+        <h2>5. 来館者向けデモ確認</h2>
+      </div>
+      <p>実際の利用者が見る館内ナビ画面です。入口選択、検索、ルート表示、スマホ表示を確認します。</p>
+      <div class="actions">
+        <a class="button primary" href="./index-demo.html">デモ確認を開く</a>
+      </div>
+    </section>
+  </div>
+
+  <section class="section">
+    <h2>基本の作業順</h2>
+    <div class="flow">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-title">ノード編集</div>
+        <div class="step-text">通路上にノードを置き、CSV出力します。</div>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-title">エッジ編集</div>
+        <div class="step-text">ノード同士を通路に沿って接続します。</div>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-title">ロケーション編集</div>
+        <div class="step-text">ピン位置と接続ノードを編集します。</div>
+      </div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-title">バックアップ管理</div>
+        <div class="step-text">大きな変更前後にバックアップJSONを作成します。</div>
+      </div>
+      <div class="step">
+        <div class="step-number">5</div>
+        <div class="step-title">デモ確認</div>
+        <div class="step-text">検索とルート表示が自然か確認します。</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2>使用データ</h2>
+    <div class="files">
+      <div class="file">nodes_1f.csv</div>
+      <div class="file">edges_1f.csv</div>
+      <div class="file">locations_1f.csv</div>
+      <div class="file">floor1.png</div>
+      <div class="file">index-demo.html</div>
+      <div class="file">location-editor.html</div>
+      <div class="file">node-editor.html</div>
+      <div class="file">edge-editor.html</div>
+      <div class="file">backup-manager.html</div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  この画面はローカル運用向けの簡易管理メニューです。
+  各エディタでCSV出力後は、ダウンロードされたCSVを mall-map フォルダ内の同名CSVへ上書きしてください。
+  大きな変更前後には、バックアップ管理で3CSVを選択し、作成されたバックアップJSONを mall-map/backups フォルダへ移動して保管してください。
+</footer>
+</body>
+</html>

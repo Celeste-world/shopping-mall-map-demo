@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>バックアップ管理</title>
+<style>
+:root{
+  --bg:#f4f7fb;
+  --card:#fff;
+  --text:#1f2937;
+  --muted:#6b7280;
+  --line:#e5e7eb;
+  --blue:#2563eb;
+  --green:#16a34a;
+  --red:#dc2626;
+  --orange:#f97316;
+  --shadow:0 10px 24px rgba(15,23,42,0.08);
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+.header{
+  max-width:960px;
+  margin:0 auto;
+  padding:30px 18px 14px;
+}
+.back-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-bottom:12px;
+  padding:7px 10px;
+  border:1px solid #dbeafe;
+  border-radius:8px;
+  background:#eff6ff;
+  color:#2563eb;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:700;
+}
+.badge{
+  display:inline-flex;
+  padding:5px 10px;
+  border-radius:999px;
+  background:#eaf2ff;
+  color:#1d4ed8;
+  font-size:13px;
+  font-weight:700;
+}
+h1{margin:14px 0 8px;font-size:30px;line-height:1.25;}
+h2{margin:0 0 8px;font-size:20px;}
+.lead{margin:0;color:var(--muted);line-height:1.8;font-size:15px;}
+.container{max-width:960px;margin:0 auto;padding:0 18px 36px;}
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:18px;
+  box-shadow:var(--shadow);
+  margin-top:16px;
+}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+button,a.button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  padding:9px 14px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:#fff;
+  color:var(--text);
+  font-size:14px;
+  font-weight:700;
+  text-decoration:none;
+  cursor:pointer;
+}
+button.green{background:var(--green);color:#fff;border-color:var(--green);}
+button.orange{background:var(--orange);color:#fff;border-color:var(--orange);}
+.status{
+  background:#f8fafc;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:12px;
+  color:#374151;
+  line-height:1.7;
+  font-size:14px;
+  margin-top:12px;
+  word-break:break-word;
+}
+.warning{border-color:#fed7aa;background:#fff7ed;color:#9a3412;}
+.ok{border-color:#bbf7d0;background:#f0fdf4;color:#166534;}
+.file-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px;}
+.file-row{
+  display:grid;
+  grid-template-columns:180px 1fr;
+  gap:10px;
+  align-items:center;
+  border:1px solid var(--line);
+  background:#f8fafc;
+  border-radius:12px;
+  padding:10px;
+}
+.file-name{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:700;font-size:13px;}
+input[type="file"]{width:100%;}
+.small{color:var(--muted);font-size:12px;line-height:1.7;}
+code{background:#f1f5f9;padding:2px 5px;border-radius:6px;}
+.result-list{margin:10px 0 0;padding-left:1.2em;color:#374151;line-height:1.8;font-size:14px;}
+@media(max-width:720px){
+  .header{padding:22px 14px 10px;}
+  h1{font-size:24px;}
+  .container{padding:0 14px 28px;}
+  .file-row{grid-template-columns:1fr;}
+  button,a.button{width:100%;}
+}
+</style>
+</head>
+<body>
+<header class="header">
+  <a class="back-link" href="./editor-menu.html">← 管理メニューに戻る</a>
+  <div class="badge">バックアップ管理</div>
+  <h1>CSVバックアップ管理</h1>
+  <p class="lead">
+    ブラウザのローカルフォルダ書き込み制限を避けるため、CSVを選択してバックアップJSONをダウンロードします。<br>
+    復元時はバックアップJSONから3つのCSVを再ダウンロードします。
+  </p>
+</header>
+
+<main class="container">
+  <section class="card">
+    <h2>1. バックアップを作成</h2>
+      <p class="small">
+        現在使っている3つのCSVを選択してください。選択後、1つのバックアップJSONとしてダウンロードされます。<br>
+        作成されたバックアップJSONは、ダウンロード後に <strong>mall-map/backups</strong> フォルダへ移動してください。<br>
+        保存されるファイル例：<code>2026-04-25_153012_backup.json</code>
+      </p>
+
+
+    <div class="file-grid">
+      <div class="file-row">
+        <div class="file-name">nodes_1f.csv</div>
+        <input id="nodesFile" type="file" accept=".csv,text/csv">
+      </div>
+      <div class="file-row">
+        <div class="file-name">edges_1f.csv</div>
+        <input id="edgesFile" type="file" accept=".csv,text/csv">
+      </div>
+      <div class="file-row">
+        <div class="file-name">locations_1f.csv</div>
+        <input id="locationsFile" type="file" accept=".csv,text/csv">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="green" onclick="createBackupJson()">バックアップJSONを作成</button>
+    </div>
+    <div class="status" id="backupStatus">3つのCSVを選択してください。</div>
+  </section>
+
+  <section class="card">
+    <h2>2. バックアップから復元</h2>
+      <p class="small">
+        作成済みの <code>_backup.json</code> を選択すると、3つのCSVを復元用にダウンロードできます。<br>
+        ダウンロードされたCSVを <strong>mall-map</strong> フォルダ内の同名CSVへ上書きしてください。
+      </p>
+
+
+    <div class="file-row">
+      <div class="file-name">backup.json</div>
+      <input id="backupJsonFile" type="file" accept=".json,application/json">
+    </div>
+
+    <div class="actions">
+      <button class="orange" onclick="restoreFromBackupJson()">3CSVを復元ダウンロード</button>
+    </div>
+    <div class="status" id="restoreStatus">バックアップJSONを選択してください。</div>
+  </section>
+</main>
+
+<script>
+const backupStatus = document.getElementById("backupStatus");
+const restoreStatus = document.getElementById("restoreStatus");
+
+const fileInputs = {
+  "nodes_1f.csv": document.getElementById("nodesFile"),
+  "edges_1f.csv": document.getElementById("edgesFile"),
+  "locations_1f.csv": document.getElementById("locationsFile")
+};
+
+function timestamp(){
+  const d = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+}
+
+function readSelectedFile(input){
+  return new Promise((resolve, reject) => {
+    const file = input.files && input.files[0];
+    if (!file) {
+      reject(new Error("ファイルが選択されていません。"));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("ファイル読込に失敗しました。"));
+    reader.readAsText(file, "utf-8");
+  });
+}
+
+async function createBackupJson(){
+  backupStatus.className = "status";
+  backupStatus.innerHTML = "バックアップ作成中です...";
+
+  try {
+    const files = {};
+    const results = [];
+
+    for (const [fileName, input] of Object.entries(fileInputs)) {
+      const text = await readSelectedFile(input);
+      files[fileName] = text;
+      results.push(`○ 読込成功：${fileName}（${text.length}文字）`);
+    }
+
+    const bundle = {
+      version: 1,
+      created_at: new Date().toISOString(),
+      files
+    };
+
+    const json = JSON.stringify(bundle, null, 2);
+    const fileName = `${timestamp()}_backup.json`;
+    downloadText(fileName, json, "application/json;charset=utf-8");
+
+    backupStatus.className = "status ok";
+    backupStatus.innerHTML = `
+      バックアップJSONを作成しました：<code>${fileName}</code>
+      <ul class="result-list"><li>${results.join("</li><li>")}</li></ul>
+    `;
+  } catch (err) {
+    backupStatus.className = "status warning";
+    backupStatus.innerHTML = `バックアップ作成に失敗しました。<br>${escapeHtml(err.message)}`;
+  }
+}
+
+async function restoreFromBackupJson(){
+  restoreStatus.className = "status";
+  restoreStatus.innerHTML = "バックアップJSONを読み込んでいます...";
+
+  try {
+    const input = document.getElementById("backupJsonFile");
+    const text = await readSelectedFile(input);
+    const bundle = JSON.parse(text);
+
+    if (!bundle.files || typeof bundle.files !== "object") {
+      throw new Error("バックアップJSONの形式が正しくありません。");
+    }
+
+    const required = ["nodes_1f.csv", "edges_1f.csv", "locations_1f.csv"];
+    const missing = required.filter(name => !(name in bundle.files));
+    if (missing.length) {
+      throw new Error(`不足ファイル：${missing.join(", ")}`);
+    }
+
+    const results = [];
+    for (const fileName of required) {
+      downloadText(fileName, bundle.files[fileName], "text/csv;charset=utf-8");
+      results.push(`○ 復元CSV作成：${fileName}`);
+    }
+
+    restoreStatus.className = "status ok";
+   restoreStatus.innerHTML = `
+      3つのCSVをダウンロードしました。<br>
+      ダウンロードされたCSVを <strong>mall-map</strong> フォルダ内の同名CSVへ上書きしてください。
+      <ul class="result-list"><li>${results.join("</li><li>")}</li></ul>
+    `;
+
+  } catch (err) {
+    restoreStatus.className = "status warning";
+    restoreStatus.innerHTML = `復元に失敗しました。<br>${escapeHtml(err.message)}`;
+  }
+}
+
+function downloadText(fileName, text, type){
+  const blob = new Blob(["\uFEFF" + text], { type });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
+function escapeHtml(value){
+  return String(value || "").replace(/[&<>"]/g, ch => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;"
+  }[ch]));
+}
+</script>
+</body>
+</html>
