@@ -144,7 +144,7 @@ button.entrance.active-entrance{
   position:fixed;
   top:calc(12px + env(safe-area-inset-top));
   right:12px;
-  z-index:220;
+  z-index:260;
   background:#fff;
   color:#111827;
   border:1px solid #e5e7eb;
@@ -161,6 +161,25 @@ button.entrance.active-entrance{
   overflow:hidden;
 }
 
+.map-stage{
+  position:relative;
+  width:100%;
+}
+
+.map-stage img{
+  width:100%;
+  display:block;
+}
+
+.map-stage svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:2;
+  pointer-events:none;
+}
+
 .map-wrap.map-expanded{
   position:fixed;
   left:0;
@@ -175,6 +194,11 @@ button.entrance.active-entrance{
   border-radius:0;
   background:#111827;
   overflow:hidden;
+}
+
+.map-wrap.map-expanded .map-stage{
+  width:100%;
+  position:relative;
 }
 
 .map-wrap.map-expanded img{
@@ -209,11 +233,6 @@ button.entrance.active-entrance{
 
 .map-wrap.map-expanded .node{
   display:none;
-}
-
-.map-wrap img{
-  width:100%;
-  display:block;
 }
 
 .pin{
@@ -373,52 +392,57 @@ svg{
     border-bottom:1px solid #e5e7eb;
   }
 
-    body.route-view-mode{
+  body.route-view-mode{
     overflow:hidden;
   }
 
-    body.route-view-mode .app-header,
-    body.route-view-mode .controls,
-    body.route-view-mode .search-panel,
-    body.route-view-mode .map-toolbar,
-    body.route-view-mode .info{
-      display:none;
-    }
+  body.route-view-mode .app-header,
+  body.route-view-mode .controls,
+  body.route-view-mode .search-panel,
+  body.route-view-mode .map-toolbar,
+  body.route-view-mode .info{
+    display:none;
+  }
 
-    body.route-view-mode .map-wrap.map-expanded{
-      position:fixed;
-      inset:0;
-      transform:none;
-      width:100vw;
-      max-width:none;
-      height:100dvh;
-      margin:0;
-      z-index:200;
-      border-radius:0;
-      background:#111827;
-      overflow:auto;
-      padding-top:48px;
-      box-sizing:border-box;
-    }
+  body.route-view-mode .map-wrap.map-expanded{
+    position:fixed;
+    inset:0;
+    transform:none;
+    width:100vw;
+    max-width:none;
+    height:100dvh;
+    margin:0;
+    z-index:200;
+    border-radius:0;
+    background:#111827;
+    overflow:auto;
+    padding-top:48px;
+    box-sizing:border-box;
+  }
 
-    body.route-view-mode .map-wrap.map-expanded img{
-      width:100%;
-      height:auto;
-      display:block;
-    }
+  body.route-view-mode .map-wrap.map-expanded .map-stage{
+    width:100%;
+    position:relative;
+  }
 
-    body.route-view-mode .map-wrap.map-expanded svg{
-      width:100%;
-      height:100%;
-    }
+  body.route-view-mode .map-wrap.map-expanded img{
+    width:100%;
+    height:auto;
+    display:block;
+  }
 
-    body.route-view-mode .map-wrap.map-expanded .map-close-btn{
-      display:block;
-      position:fixed;
-      top:calc(10px + env(safe-area-inset-top));
-      right:10px;
-      z-index:260;
-    }
+  body.route-view-mode .map-wrap.map-expanded svg{
+    width:100%;
+    height:100%;
+  }
+
+  body.route-view-mode .map-wrap.map-expanded .map-close-btn{
+    display:block;
+    position:fixed;
+    top:calc(10px + env(safe-area-inset-top));
+    right:10px;
+    z-index:260;
+  }
     
   .app-title{
     font-size:20px;
@@ -524,12 +548,12 @@ svg{
     border-radius:12px;
   }
 
-  .map-wrap img{
+  .map-stage img{
     width:100%;
     min-width:0;
   }
 
-  .map-wrap svg{
+  .map-stage svg{
     width:100%;
     min-width:0;
   }
@@ -571,8 +595,8 @@ svg{
     grid-template-columns:1fr 1fr;
   }
 
-  .map-wrap img,
-  .map-wrap svg{
+  .map-stage img,
+  .map-stage svg{
     min-width:0;
   }
 }
@@ -620,8 +644,11 @@ svg{
 
 <div class="map-wrap" id="wrap">
   <button class="map-close-btn" id="mapCloseBtn" onclick="closeMapExpand()">地図を戻す</button>
-  <img src="./floor1.png" id="floorImage" alt="館内図">
-  <svg viewBox="0 0 100 100" preserveAspectRatio="none" id="svg"></svg>
+
+  <div class="map-stage" id="mapStage">
+    <img src="./floor1.png" id="floorImage" alt="館内図">
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" id="svg"></svg>
+  </div>
 </div>
 
 <div class="info" id="infoBox">
@@ -641,6 +668,7 @@ let activeEntranceIndex = null;
 let highlightedLocationIds = [];
 
 const wrap = document.getElementById("wrap");
+const mapStage = document.getElementById("mapStage");
 const svg = document.getElementById("svg");
 const floorImage = document.getElementById("floorImage");
 const infoBox = document.getElementById("infoBox");
@@ -909,7 +937,7 @@ function locationLabel(location){
 }
 
 function renderBase(){
-  document.querySelectorAll(".pin,.node,.route-label,.special-marker,.entrance-icon,.entrance-label").forEach(el => el.remove());
+  mapStage.querySelectorAll(".pin,.node,.route-label,.special-marker,.entrance-icon,.entrance-label").forEach(el => el.remove());
   svg.innerHTML = "";
 
   nodes.forEach(n => {
@@ -918,7 +946,7 @@ function renderBase(){
     d.title = `${n.id}: ${n.name}`;
     d.style.left = n.x + "%";
     d.style.top = n.y + "%";
-    wrap.appendChild(d);
+    mapStage.appendChild(d);
   });
 
   locations.forEach(location => {
@@ -931,14 +959,14 @@ function renderBase(){
     pin.style.left = location.x + "%";
     pin.style.top = location.y + "%";
     pin.title = location.name;
-    wrap.appendChild(pin);
+    mapStage.appendChild(pin);
 
     const label = document.createElement("div");
     label.className = "route-label";
     label.style.left = location.x + "%";
     label.style.top = location.y + "%";
     label.textContent = location.name;
-    wrap.appendChild(label);
+    mapStage.appendChild(label);
   });
 
   entrances.forEach((entrance, index) => {
@@ -953,7 +981,7 @@ function renderBase(){
       event.stopPropagation();
       setEntrance(index);
     });
-    wrap.appendChild(icon);
+    mapStage.appendChild(icon);
 
     if (highlightedLocationIds.includes(entrance.id) || activeEntranceIndex === index) {
       const label = document.createElement("div");
@@ -961,7 +989,7 @@ function renderBase(){
       label.style.left = entrance.x + "%";
       label.style.top = `calc(${entrance.y}% + 14px)`;
       label.textContent = entrance.name;
-      wrap.appendChild(label);
+      mapStage.appendChild(label);
     }
   });
 
@@ -983,11 +1011,11 @@ function drawSpecialMarker(x, y, type, text){
   marker.style.left = x + "%";
   marker.style.top = y + "%";
   marker.textContent = text;
-  wrap.appendChild(marker);
+  mapStage.appendChild(marker);
 }
 
 function bindCurrentLocationPlacement(){
-  wrap.addEventListener("click", e => {
+  mapStage.addEventListener("click", e => {
     if (!currentMode) return;
 
     const rect = floorImage.getBoundingClientRect();
@@ -1232,7 +1260,7 @@ function go(){
   drawSpecialMarker(startLocation.x, startLocation.y, fromCurrent ? "current" : "start", "S");
   drawSpecialMarker(goalLocation.x, goalLocation.y, "goal", "G");
 
-   infoBox.innerHTML = `
+  infoBox.innerHTML = `
     <strong>ルートを表示しました。</strong>
     <span class="route-detail"><br>
       出発地点：${startName}<br>
